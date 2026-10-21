@@ -3,12 +3,15 @@
 # github https://github.com/runhey
 from datetime import datetime, timedelta, time
 import random  # type: ignore
-from module.atom.image import RuleImage
-from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleConfig
+from typing import Callable
+from module.atom.click import RuleClick
 
-from tasks.Component.GeneralBattle.general_battle import BattleAction, BattleContext, ExitMatcher, GeneralBattle
-from tasks.GameUi.default_pages import page_battle_result
-from tasks.GameUi.matcher import any_of
+from module.logger import logger
+from module.exception import TaskEnd
+from module.base.timer import Timer
+
+import tasks.GameUi.page as pages
+from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.HeroTest.assets import HeroTestAssets
 from tasks.GameUi.game_ui import GameUi
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
@@ -120,13 +123,37 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
         return False
 
     def hero1_skill_wait(self):
-        if self.appear_then_click(self.I_BCMJ_SKILL_ADD1, interval=1) or \
-                self.appear_then_click(self.I_BCMJ_SKILL_ADD2, interval=1) or \
-                self.appear_then_click(self.I_BCMJ_BLESS, interval=1) or \
-                self.appear_then_click(self.I_BCMJ_PROPERTY_ADD_CRITICAL, interval=1) or \
-                self.appear_then_click(self.I_BCMJ__DEFALUT_ATTRIBUTE, interval=1):
-            pass
-        return self.appear_then_click(self.I_BCMJ_SKILL_ADD_CONFIRM, interval=1)
+        if self.wait_until_appear(self.I_BCMJ_SKILL_ADD_CONFIRM, wait_time=2):
+            timer = Timer(10).start()
+            while 1:
+                self.screenshot()
+
+                # https://github.com/runhey/OnmyojiAutoScript/issues/1671
+                if timer.reached_and_reset():
+                    if self.appear(self.I_BCMJ_SKILL_ADD_CONFIRM):
+                        logger.warning('No skill selected for 10s, panel still open, click a random buff')
+                        self.click_random_buff()
+                        break
+                    logger.warning('Skill selection panel closed unexpectedly, exit')
+                    break
+
+                if self.appear_then_click(self.I_BCMJ_SKILL_ADD1, interval=1):
+                    break
+                if self.appear_then_click(self.I_BCMJ_SKILL_ADD2, interval=1):
+                    break
+                if self.appear_then_click(self.I_BCMJ_BLESS, interval=1):
+                    break
+                if self.appear_then_click(
+                        self.I_BCMJ_PROPERTY_ADD_CRITICAL, interval=1
+                ):
+                    break
+                if self.appear_then_click(
+                        self.I_BCMJ__DEFALUT_ATTRIBUTE, interval=1
+                ):
+                    break
+            if self.appear_then_click(self.I_BCMJ_SKILL_ADD_CONFIRM, interval=1):
+                return True
+        return False
 
     def hero2_skill_wait(self):
         # pve技能列表, 按优先级顺序
@@ -151,9 +178,27 @@ class ScriptTask(GameUi, GeneralBattle, HeroTestAssets, SwitchSoul):
             SkillMode.PVP: pvp_skill,
         }
         target_skills = target_skill_dict[self.conf.herotest.skill_mode]
-        if any(self.appear_then_click(ts, interval=1) for ts in target_skills):
-            pass
-        return self.appear_then_click(self.I_BCMJ_SKILL_ADD_CONFIRM, interval=1.5)
+        timer = Timer(10).start()
+        while True:
+            self.screenshot()
+            if timer.reached_and_reset():
+                if self.appear(self.I_BCMJ_SKILL_ADD_CONFIRM):
+                    logger.warning('No skill selected for 10s, panel still open, click a random buff')
+                    self.click_random_buff()
+                    break
+                logger.warning('Skill selection panel closed unexpectedly, exit')
+                break
+            if any(self.appear_then_click(ts, interval=1) for ts in target_skills):
+                break
+        self.ui_click_until_disappear(self.I_BCMJ_SKILL_ADD_CONFIRM, interval=1.5)
+        return True
+
+    def click_random_buff(self):
+        """兜底: 4个buff都未匹配到目标时, 随机点击一个槽位, 避免卡死"""
+        logger.warning('No target buff matched, click a random buff')
+        slot = random.choice([(60, 320, 200, 140), (380, 320, 200, 140),
+                              (700, 320, 200, 140), (1020, 320, 200, 140)])
+        self.click(RuleClick(roi_front=slot, roi_back=slot, name='buff_random'), interval=1)
 
     def switch_hero(self, layer: Layer):
         """切换英杰"""
