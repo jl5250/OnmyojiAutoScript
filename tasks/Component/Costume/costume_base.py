@@ -25,21 +25,40 @@ main_costume_model = {
         'I_MAIN_GOTO_EXPLORATION': f'I_MAIN_GOTO_EXPLORATION_{i}',
         'I_MAIN_GOTO_SUMMON': f'I_MAIN_GOTO_SUMMON_{i}',
         'I_MAIN_GOTO_TOWN': f'I_MAIN_GOTO_TOWN_{i}',
-        'I_PET_HOUSE': f'I_PET_HOUSE_{i}',
-        'I_WQ_DONE': f'I_WQ_DONE_{i}',  # 该条及以下非强制更改, 若对应庭院内容识别不到可以添加
-        'I_HARVEST_SIGN': f'I_HARVEST_SIGN_{i}',
-        'I_HARVEST_JADE': f'I_HARVEST_JADE_{i}',
-        'I_HARVEST_MAIL': f'I_HARVEST_MAIL_{i}',
-        'I_HARVEST_SOUL': f'I_HARVEST_SOUL_{i}',
-        'I_HARVEST_GUILD_REWARD': f'I_HARVEST_GUILD_REWARD_{i}',
-    }
-    for i in range(1, 18)
+        'I_PET_HOUSE': f'I_PET_HOUSE_{i}'
+    } for i in range(1, 17)
+}
+# 玉岚狐庭（issue #1824）
+main_costume_model[getattr(MainType, "COSTUME_MAIN_17")] = {
+    'I_CHECK_MAIN': ['I_CHECK_MAIN_17_A', 'I_CHECK_MAIN_17_B', 'I_CHECK_MAIN_17_C'],
+    'I_MAIN_GOTO_EXPLORATION': ['I_MAIN_GOTO_EXPLORATION_17_A', 'I_MAIN_GOTO_EXPLORATION_17_B', 'I_MAIN_GOTO_EXPLORATION_17_C'],
+    'I_MAIN_GOTO_SUMMON': ['I_MAIN_GOTO_SUMMON_17_A', 'I_MAIN_GOTO_SUMMON_17_B', 'I_MAIN_GOTO_SUMMON_17_C'],
+    'I_MAIN_GOTO_TOWN': ['I_MAIN_GOTO_TOWN_17_A', 'I_MAIN_GOTO_TOWN_17_B', 'I_MAIN_GOTO_TOWN_17_C'],
+    'I_PET_HOUSE': ['I_PET_HOUSE_17_A', 'I_PET_HOUSE_17_B', 'I_PET_HOUSE_17_C'],
+}
+main_costume_model[getattr(MainType, "COSTUME_MAIN_13")] = {
+    'I_CHECK_MAIN': ['I_CHECK_MAIN_13',],
+    'I_MAIN_GOTO_EXPLORATION': ['I_MAIN_GOTO_EXPLORATION_13', ],
+    'I_MAIN_GOTO_SUMMON': ['I_MAIN_GOTO_SUMMON_13',],
+    'I_MAIN_GOTO_TOWN': ['I_MAIN_GOTO_TOWN_13',],
+    'I_PET_HOUSE': ['I_PET_HOUSE_13',],
 }
 
-# 战斗主题（使用循环处理常规情况 + 特例处理）
-battle_theme_model = {}
-for i in range(1, 16):
-    entry = {
+
+
+# 鲤鱼旗皮肤
+carpbanner_costume_model = {
+    getattr(CarpBannerType, f"COSTUME_CARPBANNER_{i}"): {
+        'I_SHI_CARD': f'I_SHI_CARD_{i}',
+        'I_SHI_DEFENSE': f'I_SHI_DEFENSE_{i}',
+        'I_SHI_GROWN': f'I_SHI_GROWN_{i}',
+    } for i in range(1, 4)
+}
+
+
+# 战斗主题
+battle_theme_model = {
+    getattr(BattleType, f"COSTUME_BATTLE_{i}"): {
         'I_LOCAL': f'I_LOCAL_{i}',
         'I_EXIT': f'I_EXIT_{i}',
         'I_FRIENDS': f'I_FRIENDS_{i}',
@@ -118,8 +137,24 @@ class CostumeBase:
         logger.info(f'Switch main costume to {main_type}')
         costume_assets = CostumeAssets()
         for key, value in main_costume_model[main_type].items():
-            assert_value: RuleImage = getattr(costume_assets, value, None)
-            if assert_value is None:
+            if isinstance(value, list):
+                if not hasattr(self, key):
+                    continue
+                rules: list[RuleImage] = [getattr(costume_assets, item) for item in value]
+                RuleGif.attach_to(getattr(self, key), rules)
+            else:
+                assert_value: RuleImage = getattr(costume_assets, value)
+                self.replace_img(key, assert_value)
+
+    def check_costume_carpbanner(self, carpbanner_type: CarpBannerType):
+        if carpbanner_type == CarpBannerType.COSTUME_CARPBANNER_DEFAULT:
+            return
+        logger.info(f'Switch carp banner theme {carpbanner_type} (override realm assets)')
+        carpbanner_assets = CostumeCarpBannerAssets()
+        model = carpbanner_costume_model.get(carpbanner_type, {})
+        for key, value in model.items():
+            if not hasattr(carpbanner_assets, value):
+                logger.warning(f'Carp banner asset {value} not found, skip')
                 continue
             self.replace_img(key, assert_value)
 
@@ -162,4 +197,4 @@ class CostumeBase:
 
 if __name__ == '__main__':
     c = CostumeBase()
-    c.check_costume_main(MainType.COSTUME_MAIN_2)
+    c.check_costume_main(MainType.COSTUME_MAIN_13)
