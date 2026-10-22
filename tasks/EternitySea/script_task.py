@@ -9,11 +9,8 @@ from tasks.Component.GeneralBattle.config_general_battle import GeneralBattleCon
 from tasks.EternitySea.config import EternitySea
 
 from tasks.GameUi.game_ui import GameUi
-from tasks.Component.GeneralBattle.general_battle import (
-    BattleAction,
-    BattleContext,
-    GeneralBattle,
-)
+from tasks.GameUi.page import page_soul_zones, page_shikigami_records
+from tasks.Component.GeneralBattle.general_battle import GeneralBattle
 from tasks.Component.GeneralRoom.general_room import GeneralRoom
 from tasks.Component.GeneralInvite.general_invite import GeneralInvite
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
@@ -222,7 +219,18 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
                 return True
         return False
 
-    def _enter_eternity_sea(self) -> bool:
+    def _is_in_eternity_sea(self) -> bool:
+        self.screenshot()
+        return self.appear(self.I_ETERNITY_SEA_FIRE)
+
+    @property
+    def _limit_time(self) -> timedelta:
+        limit_time = self._task_config.eternity_sea_config.limit_time
+        return timedelta(
+            hours=limit_time.hour, minutes=limit_time.minute, seconds=limit_time.second
+        )
+
+    def _enter_eternity_sea(self) -> None:
         logger.info("Enter eternity_sea")
         while True:
             self.screenshot()
@@ -233,7 +241,10 @@ class ScriptTask(GameUi, GeneralBattle, GeneralRoom, GeneralInvite, SwitchSoul, 
             #有可能点击到录像
             if self.appear_then_click(self.I_UI_BACK_RED, interval=1):
                 continue
-        return False
+
+    @property
+    def _task_config(self) -> EternitySea:
+        return self.config.model.eternity_sea
 
     def check_layer(self, layer: str) -> bool:
         """

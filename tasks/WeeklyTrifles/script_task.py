@@ -332,4 +332,8 @@ if __name__ == '__main__':
     d = Device(c)
     t = ScriptTask(c, d)
     t.screenshot()
+
     t.run()
+    # t._share_collect()
+    t._share_area_boss()
+    # t.click_share(t.I_WT_SE_WECHAT)

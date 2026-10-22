@@ -10,7 +10,8 @@ from module.base.timer import Timer
 from tasks.Orochi.page import page_orochi
 from tasks.Orochi.script_task import ScriptTask as OrochiScriptTask
 from tasks.Orochi.config import Layer
-from tasks.GameUi.page import page_main, page_soul_zones, page_shikigami_records
+from tasks.Orochi.page import page_orochi
+from tasks.GameUi.page import page_main, page_shikigami_records
 from tasks.TrueOrochi.assets import TrueOrochiAssets
 
 
@@ -28,7 +29,19 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
             logger.warning('This week is full')
             self.check_times(True)
             raise TaskEnd('TrueOrochi')
+
+        # 御魂切换方式一
+        if self.config.true_orochi.switch_soul.enable:
+            self.goto_page(page_shikigami_records)
+            self.run_switch_soul(self.config.true_orochi.switch_soul.switch_group_team)
+        # 御魂切换方式二
+        if self.config.true_orochi.switch_soul.enable_switch_by_name:
+            self.goto_page(page_shikigami_records)
+            self.run_switch_soul_by_name(self.config.true_orochi.switch_soul.group_name,
+                                         self.config.true_orochi.switch_soul.team_name)
+
         self.goto_page(page_orochi)
+        sleep(0.5)
         battle = self.check_true_orochi(True)
         if not battle:
             logger.warning('Not find true orochi')
@@ -47,7 +60,9 @@ class ScriptTask(OrochiScriptTask, TrueOrochiAssets):
         self.run_true_orochi_battle()
         self.check_times(True)
 
+        # 检查是否还有真蛇入口，支持存储两次
         self.goto_page(page_orochi)
+        sleep(0.5)
         if conf.current_success < 2 and self.check_true_orochi(True):
             logger.info('Find another true orochi entry, continue')
             self.run_true_orochi_battle()

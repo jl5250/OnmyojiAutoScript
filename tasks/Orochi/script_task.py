@@ -14,6 +14,7 @@ from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.GameUi.game_ui import GameUi
 from tasks.GameUi.page import any_of, page_main, page_reward, page_shikigami_records, page_soul_zones
 from tasks.Orochi.assets import OrochiAssets
+from tasks.Orochi.page import page_orochi
 from tasks.Orochi.config import Orochi, UserStatus, Layer
 from tasks.TrueOrochi.assets import TrueOrochiAssets
 from module.logger import logger
@@ -54,8 +55,8 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
 
         config: Orochi = self.config.orochi
         if not self.is_in_battle(True):
-            self.goto_page(page_main)
             if config.orochi_config.soul_buff_enable:
+                self.goto_page(page_main)
                 self.open_buff()
                 self.soul(is_open=True)
                 self.close_buff()
@@ -75,9 +76,9 @@ class ScriptTask(GeneralBattle, GeneralInvite, GeneralBuff, GeneralRoom, GameUi,
             if self.appear(self.I_FIND_TS):
                 logger.info('Find true orochi after orochi battle, set TrueOrochi task to run now')
                 self.set_next_run(task='TrueOrochi', success=False, finish=False, server=False, target=datetime.now())
-        self.goto_page(page_main)
         # 记得关掉
         if config.orochi_config.soul_buff_enable:
+            self.goto_page(page_main)
             self.open_buff()
             self.soul(is_open=False)
             self.close_buff()
